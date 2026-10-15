@@ -1,0 +1,48 @@
+# ============================================================
+# CSD-MM / mmFormer reproduction dependencies
+# Verified with conda env `pytorch` used in our experiments.
+#
+# Environment:
+#   OS: Linux
+#   Python: 3.11
+#   CUDA: 12.4 (PyTorch cu124 wheels)
+#   GPU: NVIDIA GPU with >= 11GB memory recommended
+#
+# Install:
+#   conda create -n csdmm python=3.11 -y
+#   conda activate csdmm
+#   # Install PyTorch first (choose CUDA build matching your driver):
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+#   pip install -r requirements.txt
+# ============================================================
+
+# --- core scientific stack ---
+numpy==1.26.4
+scipy==1.14.1
+pandas==2.2.3
+scikit-learn==1.6.1
+scikit-image==0.25.2
+tqdm==4.67.0
+PyYAML==6.0.2
+einops==0.8.0
+
+# --- medical imaging / metrics ---
+nibabel==5.3.2
+MedPy==0.5.2
+opencv-python-headless==4.11.0.86
+
+# --- training utilities ---
+tensorboard==2.19.0
+
+# --- optional but used by some scripts (pttea / visualization) ---
+matplotlib==3.9.2
+Pillow==11.0.0
+SimpleITK==2.4.0
+monai==1.4.0
+timm==1.0.12
+
+# NOTE:
+# torch / torchvision are intentionally NOT pinned here because the CUDA
+# wheel must match the local driver. Install them before this file, e.g.:
+#   pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+# Experimented with: torch==2.5.1+cu124
