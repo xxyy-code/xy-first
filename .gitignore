@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+output/pth/*.pth
+output/ada_pth/*.pth
+output/csv/*.csv
+*.log
+.DS_Store
+.idea/
+.vscode/

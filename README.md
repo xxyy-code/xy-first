@@ -67,13 +67,18 @@ python preprocess.py \
 
 Edit the variables at the top of `scripts/run_train.sh`:
 
-| Variable | Meaning |
-|----------|---------|
-| `DATA_ROOT` | Source data root with `vol/` and `seg/` |
-| `TRAIN_FILE` | Train split `.txt` |
-| `TEST_FILE` | ID test split `.txt` |
-| `SAVE_PATH` | Checkpoint directory |
-| `GPU` | GPU id |
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `DATA_ROOT` | Source data root with `vol/` and `seg/` | — |
+| `TRAIN_FILE` / `TEST_FILE` | Split lists | — |
+| `SAVE_PATH` / `CSV_PATH` | Checkpoint & log paths | `./output/...` |
+| `GPU` | GPU id | `0` |
+| `LR` / `WEIGHT_DECAY` | Optimizer | `2e-4` / `1e-4` |
+| `NUM_EPOCHS` / `ITER_PER_EPOCH` / `BATCH_SIZE` | Schedule | `1000` / `110` / `2` |
+| `REGION_FUSION_START_EPOCH` | Start using fuse/gw loss | `34` |
+| `CROP_SIZE` / `ROTATE_ANGLE` / `INTENSITY_SHIFT` | Augmentation | `80` / `10` / `0.1` |
+| `ROU_VAR_WEIGHT` / `ROU_ENTRO_WEIGHT` | Router loss weights | `0.01` / `0.005` |
+| `SEED` / `NUM_WORKERS` / `NUM_CLS` | Misc | `1024` / `8` / `4` |
 
 Then run:
 
@@ -109,12 +114,16 @@ OOD_ROOT=/path/to/OOD_data OOD_TEST_FILE=/path/to/ood_test.txt bash scripts/run_
 
 Edit `scripts/run_tta.sh`:
 
-| Variable | Meaning |
-|----------|---------|
-| `DATA_ROOT` / `TRAIN_FILE` / `TEST_FILE` | Target domain data & lists |
-| `SOURCE_ROOT` / `SOURCE_TRAIN_FILE` | Source domain used to estimate class priors |
-| `PRETRAIN` | Path to pretrained CSD-MM `.pth` |
-| `SAVE_PATH` | Adapted checkpoint directory |
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `DATA_ROOT` / `TRAIN_FILE` / `TEST_FILE` | Target domain data & lists | — |
+| `SOURCE_ROOT` / `SOURCE_TRAIN_FILE` | Source priors | — |
+| `PRETRAIN` | Pretrained CSD-MM `.pth` | — |
+| `LR` / `NUM_EPOCHS` / `ITER_PER_EPOCH` | Adaptation schedule | `2e-5` / `10` / `99` |
+| `ALIGN_TUMOR_WEIGHT` | Tumor moment-align weight | `10.0` |
+| `MASS_DELTA_RATIO` | Bad-class reject threshold | `0.3` |
+| `EVAL_EVERY` | Eval every N epochs | `2` |
+| `CROP_SIZE` / `ROTATE_ANGLE` / `INTENSITY_SHIFT` | Augmentation | `80` / `10` / `0.1` |
 
 ```bash
 bash scripts/run_tta.sh

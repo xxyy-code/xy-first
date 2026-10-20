@@ -51,12 +51,25 @@ parser.add_argument('--iter_per_epoch', default=99, type=int)
 parser.add_argument('--region_fusion_start_epoch', default=0, type=int)
 parser.add_argument('--seed', default=1024, type=int)
 parser.add_argument('--num_workers', default=8, type=int)
+parser.add_argument('--crop_size', default=80, type=int, help='Adaptation random crop size')
+parser.add_argument('--rotate_angle', default=10, type=float, help='Random rotation degrees')
+parser.add_argument('--intensity_shift', default=0.1, type=float, help='Random intensity shift/scale')
+parser.add_argument('--align_tumor_weight', default=10.0, type=float,
+                    help='Extra weight on tumor-related moment alignment terms')
+parser.add_argument('--mass_delta_ratio', default=0.3, type=float,
+                    help='Relative mass/entropy change threshold for bad-class detection')
+parser.add_argument('--eval_every', default=2, type=int, help='Run eval every N epochs')
 path = os.path.dirname(__file__)
 
 ## parse arguments
 args = parser.parse_args()
 setup(args, 'training')
-args.train_transforms = 'Compose([RandCrop3D((80,80,80)), RandomRotion(10), RandomIntensityChange((0.1,0.1)), RandomFlip(0), NumpyType((np.float32, np.int64)),])'
+cs = int(args.crop_size)
+args.train_transforms = (
+    f'Compose([RandCrop3D(({cs},{cs},{cs})), RandomRotion({args.rotate_angle}), '
+    f'RandomIntensityChange(({args.intensity_shift},{args.intensity_shift})), '
+    f'RandomFlip(0), NumpyType((np.float32, np.int64)),])'
+)
 args.test_transforms = 'Compose([NumpyType((np.float32, np.int64)),])'
 
 ckpts = args.savepath
@@ -399,7 +412,7 @@ def main():
                 else:
                     loss_fuse = 0
                 if j == 1 or j == 3:
-                    loss_pred += 10 * loss_fuse
+                    loss_pred += args.align_tumor_weight * loss_fuse
             loss_bi = torch.zeros(1).cuda().float()
             for j in [0, 1]:
                 if bg_mu[j] != 'no':
@@ -436,7 +449,7 @@ def main():
                                                        enhan_var[j])
                 else:
                     loss_enhan = 0
-                loss_bi += loss_bg + loss_edema + 10 * (loss_enhan + loss_ncr)
+                loss_bi += loss_bg + loss_edema + args.align_tumor_weight * (loss_enhan + loss_ncr)
             loss = loss_pred / 4 + loss_bi / 8
 
             optimizer.zero_grad()
@@ -466,7 +479,7 @@ def main():
 
         student_count = torch.zeros(num_cls).cuda()
         teacher_count = torch.zeros(num_cls).cuda()
-        if (epoch + 1) % 2 == 0:
+        if (epoch + 1) % args.eval_every == 0:
             eps = 1e-8
             with torch.no_grad():
                 for i, data in enumerate(train_loader):
@@ -520,14 +533,15 @@ def main():
             for c in range(num_cls):
                 if c == 0:
                     continue
-                # if delta_mass[c] > 0.3 * mean_teacher_mass[c] or delta_entropy[c] > 0.3 * mean_teacher_entropy[c]:
+                thr = args.mass_delta_ratio
+                # if delta_mass[c] > thr * mean_teacher_mass[c] or delta_entropy[c] > thr * mean_teacher_entropy[c]:
                 #     bad_classes.append(c)
-                if delta_mass[c] > 0.3 * mean_teacher_mass[c]:
+                if delta_mass[c] > thr * mean_teacher_mass[c]:
                     bad_classes.append(c)
-                if delta_entropy[c] > 0.3 * mean_teacher_entropy[c]:
+                if delta_entropy[c] > thr * mean_teacher_entropy[c]:
                     ratio = (
-                            (delta_entropy[c] - 0.3 * mean_teacher_entropy[c])
-                            / (0.3 * mean_teacher_entropy[c] + eps)
+                            (delta_entropy[c] - thr * mean_teacher_entropy[c])
+                            / (thr * mean_teacher_entropy[c] + eps)
                     )
 
                     weight[c] = torch.exp(-1 * ratio)

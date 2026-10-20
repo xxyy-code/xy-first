@@ -52,12 +52,22 @@ parser.add_argument('--iter_per_epoch', default=110, type=int)
 parser.add_argument('--region_fusion_start_epoch', default=34, type=int)
 parser.add_argument('--seed', default=1024, type=int)
 parser.add_argument('--num_workers', default=8, type=int)
+parser.add_argument('--crop_size', default=80, type=int, help='Training random crop size')
+parser.add_argument('--rotate_angle', default=10, type=float, help='Random rotation degrees')
+parser.add_argument('--intensity_shift', default=0.1, type=float, help='Random intensity shift/scale')
+parser.add_argument('--rou_var_weight', default=0.01, type=float, help='Router variance loss weight')
+parser.add_argument('--rou_entro_weight', default=0.005, type=float, help='Router entropy loss weight')
 path = os.path.dirname(__file__)
 
 ## parse arguments
 args = parser.parse_args()
 setup(args, 'training')
-args.train_transforms = 'Compose([RandCrop3D((80,80,80)), RandomRotion(10), RandomIntensityChange((0.1,0.1)), RandomFlip(0), NumpyType((np.float32, np.int64)),])'
+cs = int(args.crop_size)
+args.train_transforms = (
+    f'Compose([RandCrop3D(({cs},{cs},{cs})), RandomRotion({args.rotate_angle}), '
+    f'RandomIntensityChange(({args.intensity_shift},{args.intensity_shift})), '
+    f'RandomFlip(0), NumpyType((np.float32, np.int64)),])'
+)
 args.test_transforms = 'Compose([NumpyType((np.float32, np.int64)),])'
 
 ckpts = args.savepath
@@ -238,7 +248,7 @@ def main():
                 rou_var_loss += rou_pred.var(dim=-1).mean()
                 rou_softmax = F.softmax(rou_pred, dim=-1)
                 rou_entro_loss += -(rou_softmax*torch.log(rou_softmax + 1e-9)).sum(dim=-1).mean()
-            rou_loss = 0.01 * rou_var_loss + 0.005 * rou_entro_loss
+            rou_loss = args.rou_var_weight * rou_var_loss + args.rou_entro_weight * rou_entro_loss
             if isinstance(gw_loss, torch.Tensor) and gw_loss.dim() > 0:
                 gw_loss = gw_loss.mean()
             if epoch < args.region_fusion_start_epoch:
